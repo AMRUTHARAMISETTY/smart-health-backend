@@ -1,18 +1,27 @@
-const http = require('http');
-const url = require('url');
+import express from "express";
+import fetch from "node-fetch";   // ✅ ES module import
+import cors from "cors";
 
-const server = http.createServer((req, res) => {
-    const reqUrl = url.parse(req.url, true);
+const app = express();
+app.use(express.json());
+app.use(cors());
 
-    if(reqUrl.pathname === '/process' && req.method === 'GET') {
-        const name = reqUrl.query.name || "Guest";
-        const age = reqUrl.query.age || "unknown";
-        res.writeHead(200, {'Content-Type': 'text/plain'});
-        res.end(`Hello, ${name}! Your age is ${age}.`);
-    } else {
-        res.writeHead(200, {'Content-Type': 'text/plain'});
-        res.end('Backend working');
-    }
+// Proxy to Flask ML service
+app.post("/predict", async (req, res) => {
+  try {
+    const response = await fetch("http://127.0.0.1:5000/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req.body)
+    });
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Error communicating with ML service" });
+  }
 });
 
-server.listen(5000, () => console.log('Server running on port 5000'));
+const PORT = 5001;
+app.listen(PORT, () => {
+  console.log(`✅ Backend running on http://127.0.0.1:${PORT}`);
+});
